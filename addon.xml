@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="pvr.freeboxtv" name="FreeboxTV" version="0.1.0" provider-name="Daniel Buteau">
+  <requires>
+    <import addon="xbmc.python" version="2.25.0 (ABI 2.1.0)"/>
+	<import addon="pvr.iptvsimple" version="3.4.0"/>
+	<import addon="service.cronxbmc" version="Current.Version.Number" />
+  </requires>
+  <extension point="xbmc.pvrclient" library="addon.py">
+    <provides>video</provides>
+  </extension>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="fr_FR">Crée automatiquement la liste des flux m3u freeboxtv et y associe les guides TV et icones automatiquement pour le plugin pvr.iptvsimple</summary>
+    <description lang="fr_FR">Se connecte a l'API mafreebox.freebox.fr. pour en extraire les informations nécessaires.</description>
+    <disclaimer lang="fr_FR">Attention, va écraser les paramètres d'iptv simple, pensez a faire une sauvegarde\r\nLa freebox peut blacklister ce plugin pour dépassement d'interrogation de l'API(qui a une limite très basse) si jamais cela �tait le cas, il faut redémarrer la freebox logiciellement pour retirer la limitation\r\nReconfigurer iptvsimple écrasera la configuration, si c'est le cas, il vous faudra désactiver et réactiver ce plugin pour relancer la bonne configuration</disclaimer>
+    <language>fr</language>
+    <platform>all</platform>
+    <license>GNU GENERAL PUBLIC LICENSE. Version 2, June 1991</license>
+    <forum></forum>
+    <website></website>
+    <email></email>
+    <source>https://github.com/dbuteau/osmc-freeboxtv</source>
+    <news>05/01/2017: creation du plugin</news>
+    <assets>
+        <icon>resources/freeboxtv.png</icon>
+    </assets>
+  </extension>
+</addon>

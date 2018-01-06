@@ -1,0 +1,2 @@
+class FreeboxHandlerError(Exception):
+    pass
