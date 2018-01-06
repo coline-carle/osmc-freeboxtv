@@ -19,7 +19,7 @@ It need and install this addon :
 ### Tv Guide Tab:
 * choose `local` in location
 * target the file `personnal folder/pvr.freeboxtv/xmltv.xml`
-### Logo tag
+### Logo tab
 * Choose `internet adress` in location
 * write `http://mafreebox.freebox.fr` in base url for logos
 * `prefer m3u` for Channel logos 
