@@ -10,7 +10,7 @@ It need and install this addon :
 * service.cronxbmc >= 0.0.9 see: https://github.com/robweber/cronxbmc
 
 # install 
-* No repo for the moment update coming
+* No release nor repo for the moment update coming
 
 ## In pvr.iptvsimple config: 
 ### General Tab:
