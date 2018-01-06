@@ -1,4 +1,4 @@
-import xbmc, xbmcgui, xbmcvfs, xbmcaddon, sys
+import xbmc, xbmcvfs, xbmcaddon
 from cron import CronManager,CronJob
 
 from distutils.version import LooseVersion
@@ -17,7 +17,7 @@ def main:
     	if oFreebox.checkApiVersion():
     		# launch only at first time
     		if not appToken:
-    			appToken, trackId = oFreebox.pairingWithoFreebox()
+    			appToken, trackId = oFreebox.pairingWithFreebox()
     			settings.setSetting("app_token",appToken)
     			settings.setSetting("track_id",trackId)
     		else:
@@ -40,6 +40,7 @@ def main:
             job.command = "runScript(special://home/addons/pvr.freeboxtv/cron.py,date +%s)"
             job.expression = "0 */1 * * *"
             job.show_notification = "false"	
+            
     except oFreeboxHandlerError as e:
         xbmc.log(e.strerror,xbmc.LOGDEBUG)
 	

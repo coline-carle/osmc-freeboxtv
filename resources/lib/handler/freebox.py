@@ -33,10 +33,10 @@ class Freebox:
 			if LooseVersion(jData['api_version']) >= '4.0':
 				return True
 			else:
-				raise FreeboxHandlerError('\t[PLUGIN] freeboxTV: FreeBox API not compatible')
+				raise FreeboxHandlerError('[PLUGIN] freeboxTV: FreeBox API not compatible')
 				return False
 		else:
-			raise FreeboxHandlerError('\t[PLUGIN] freeboxTV: FreeBox API not responded')
+			raise FreeboxHandlerError('[PLUGIN] freeboxTV: FreeBox API not responded')
 			return False
 
 	# Ask freebox for pairing authorization
@@ -61,7 +61,7 @@ class Freebox:
 		else: 
 			if (jData['result']['status'] == 'unknown') or (jData['result']['status'] == 'denied'):
 				#token invalid or revoked
-				raise FreeboxHandlerError('\t[PLUGIN] freeboxTV: Pairing Revoked)
+				raise FreeboxHandlerError('[PLUGIN] freeboxTV: Pairing Revoked)
 		
 			if (jData['result']['status'] == 'pending') or (jData['result']['status'] == 'timeout'):
 				#the user has not confirmed the authorization request
@@ -137,4 +137,4 @@ class Freebox:
  			        rtspUrl = streams['tmpQuality']
             return rtspUrl, channelNumber
         else:
-            raise FreeboxHandlerError("\t[PLUGIN] freeboxTV: API doesn't answer correctly for stream list")
+            raise FreeboxHandlerError("[PLUGIN] freeboxTV: API doesn't answer correctly for stream list")
