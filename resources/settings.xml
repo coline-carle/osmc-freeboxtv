@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings>
+    <category label="configuration">
+        <setting label="qualitée préféré" type="labelenum" id="quality" lvalues="auto|LD|SD|HD" default="auto"/>
+        <setting label="App Token" type="text" id="app_token" default="" enable="false"/>
+        <setting label="Track Id" type="text" id="track_id" default="" enable="false"/>
+    </category>
+</settings>
