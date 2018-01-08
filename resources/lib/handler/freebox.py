@@ -136,4 +136,3 @@ class Freebox:
 
             return (rtspUrl, channelNumber)
         raise FreeboxHandlerError("[PLUGIN] freeboxTV: API doesn't answer correctly for stream list")
-# okay decompiling freebox.pyo
