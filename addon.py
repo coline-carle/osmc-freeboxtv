@@ -37,12 +37,15 @@ def main():
             # create m3u file
             if not os.path.exists(userDataPath):
                 os.makedirs(userDataPath)
+
+            sortedChannels = sorted(channelsList, key=lambda channelsList: channelsList['number'])
+
             import io
             with io.open(userDataPath+'freebox.m3u', 'w', encoding='utf-8') as the_file:
                 m3uhead = u'#EXTM3U\r\n'
                 #m3uhead = m3uhead.encode('utf-8')
-                the_file.write(m3uhead)
-                for dChannel in channelsList:
+                the_file.write(m3uhead)                
+                for dChannel in sortedChannels:
                     m3uFormat = "#EXTINF:-1 tvg-id=\"%s\" tvg-name=\"%s\" tvg-logo=\"%s\" group-title=\"%s\",%s\r\n%s\r\n"
                     m3uline = m3uFormat % (
                         dChannel['channelId'], 
