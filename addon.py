@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 import xbmc, xbmcaddon
-import socket, os
+import socket, sys, os
 #from cron import CronManager,CronJob
 
 from distutils.version import LooseVersion
 from resources.lib.handler.freebox import Freebox as cFreeboxHandler
 from resources.lib.handler.exceptions import FreeboxHandlerError
-from resources.lib.channel import Channel as cChannel
 
 
 def main():
+    xbmc.log("[FREEBOXTV]start...",xbmc.LOGERROR)
     settings = xbmcaddon.Addon(id='script.module.freeboxtv')
 
     videoQuality = settings.getSetting("quality")
@@ -37,11 +37,22 @@ def main():
             # create m3u file
             if not os.path.exists(userDataPath):
                 os.makedirs(userDataPath)
-            with open(userDataPath+'freebox.m3u', 'w') as the_file:
-                the_file.write("#EXTM3U\r\n")
-                for oChannel in channelsList:
-                    xbmc.log("writing m3u for uuid"+oChannel.uuid,xbmc.LOGERROR)
-                    the_file.write(oChannel.getM3ULine())
+            import io
+            with io.open(userDataPath+'freebox.m3u', 'w', encoding='utf-8') as the_file:
+                m3uhead = u'#EXTM3U\r\n'
+                #m3uhead = m3uhead.encode('utf-8')
+                the_file.write(m3uhead)
+                for dChannel in channelsList:
+                    m3uFormat = "#EXTINF:-1 tvg-id=\"%s\" tvg-name=\"%s\" tvg-logo=\"%s\" group-title=\"%s\",%s\r\n%s\r\n"
+                    m3uline = m3uFormat % (
+                        dChannel['channelId'], 
+                        dChannel['shortname'], 
+                        dChannel['logo'], 
+                        dChannel['group'], 
+                        str(dChannel['number'])+'. '+dChannel['name'], 
+                        dChannel['stream']
+                    )
+                    the_file.write(m3uline)
 
             #record a cron to create xmltv file each hour
             #job = CronJob()
@@ -49,8 +60,9 @@ def main():
             #job.command = "runScript(special://home/addons/pvr.freeboxtv/cron.py,date +%s)"
             #job.expression = "0 */1 * * *"
             #job.show_notification = "false"    
-            
-    except FreeboxHandlerError as e:
-        xbmc.log(str(e),xbmc.LOGERROR)
+        xbmc.log("[FREEBOXTV]end.",xbmc.LOGERROR)
+    #except Exception, e:
+    except FreeboxHandlerError, e:
+        xbmc.log("[FREEBOXTV]"+str(e),xbmc.LOGERROR)
 
 main()

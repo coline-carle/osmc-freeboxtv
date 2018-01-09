@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from resources.lib.handler.exceptions import FreeboxHandlerError
-from resources.lib.channel import Channel as cChannel
 from distutils.version import LooseVersion
 import requests, json, xbmc, codecs
 
@@ -94,11 +93,22 @@ class Freebox:
                 if jData['result'][channelId]['available'] == True:
                     rtsp, number = self._getChannelStream(jData['result'][channelId]['uuid'], quality)
                     if rtsp:
-                        name = jData['result'][channelId]['name'].encode('ascii', 'replace')
-                        shortname = jData['result'][channelId]['short_name'].encode('ascii', 'replace')
-                        xbmc.log("collected uuid:"+jData['result'][channelId]['uuid'],xbmc.LOGERROR)
-                        oChannel = cChannel(jData['result'][channelId]['uuid'], number, name, shortname, jData['result'][channelId]['logo_url'], rtsp, quality)
-                        channelsList.append(oChannel)
+                        name = jData['result'][channelId]['name']
+                        shortname = jData['result'][channelId]['short_name']
+    
+                        #xbmc.log("collected uuid:"+jData['result'][channelId]['uuid'],xbmc.LOGERROR)
+                        #oChannel = cChannel(jData['result'][channelId]['uuid'], number, name, shortname, jData['result'][channelId]['logo_url'], rtsp, quality)
+                        dChannel = {
+                            'channelId':jData['result'][channelId]['uuid'], 
+                            'number':number, 
+                            'name':name, 
+                            'shortname':shortname, 
+                            'logo':jData['result'][channelId]['logo_url'], 
+                            'group':'Freebox TV',
+                            'stream':rtsp, 
+                            'quality':quality
+                        }
+                        channelsList.append(dChannel)
 
             return channelsList
         raise FreeboxHandlerError("[PLUGIN] freeboxTV: API doesn't answer correctly for channelList")

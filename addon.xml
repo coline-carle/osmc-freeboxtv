@@ -5,7 +5,10 @@
         <import addon="pvr.iptvsimple" version="3.4.0"/>
 <!--    <import addon="service.cronxbmc" version="Current.Version.Number" /> -->
     </requires>
-    <extension point="xbmc.addon.metadata" library="addon.py">
+    <extension point="xbmc.python.script" library="addon.py">
+        <provides>executable</provides>
+    </extension>
+    <extension point="xbmc.addon.metadata">
         <summary lang="fr_FR">Cree automatiquement la liste des flux m3u freeboxtv et y associe les guides TV et icones automatiquement pour le plugin pvr.iptvsimple</summary>
         <description lang="fr_FR">Se connecte a l'API mafreebox.freebox.fr. pour en extraire les informations necessaires.</description>
         <language>fr</language>
