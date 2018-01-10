@@ -9,8 +9,9 @@ from resources.lib.handler.exceptions import FreeboxHandlerError
 
 
 def main():
-    settings = xbmcaddon.Addon(id='script.module.freeboxtv')
-    
+    settings    = xbmcaddon.Addon(id='script.module.freeboxtv')
+    apptToken   = settings.getSetting("app_token")
+    trackId     = settings.getSetting("track_id")
     
     try:
         oFreebox = cFreeboxHandler( 'fr.freebox.KodiPVR', 'FreeboxTV for Kodi PVR', '0.1.0', socket.gethostname(), appToken, trackId )     

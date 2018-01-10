@@ -6,7 +6,7 @@ import xbmc, requests, json
 class Freebox:
 
     # constructor initializ needed variables
-    def __init__(self, appId, appName, appVersion, deviceName):
+    def __init__(self, appId, appName, appVersion, deviceName, appToken='', trackId=''):
         self.apiUrl = 'https://mafreebox.freebox.fr/api/v4'
         self.certPath = xbmc.translatePath('special://home/addons/script.module.freeboxtv/resources/certificate/freebox.crt')
         self.bouquetName = 'Freebox TV'
@@ -16,8 +16,8 @@ class Freebox:
         self.appVersion = appVersion
         self.deviceName = deviceName
         self.quality = 'auto'
-        self.trackId = ''
-        self.appToken = ''
+        self.trackId = trackId
+        self.appToken = appToken
         self.challenge = ''
         self.session = ''
         
