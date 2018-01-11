@@ -10,17 +10,17 @@ from resources.lib.handler.exceptions import FreeboxHandlerError
 
 def main():
     settings    = xbmcaddon.Addon(id='script.module.freeboxtv')
-    apptToken   = settings.getSetting("app_token")
+    appToken   = settings.getSetting("app_token")
     trackId     = settings.getSetting("track_id")
     
     try:
         oFreebox = cFreeboxHandler( 'fr.freebox.KodiPVR', 'FreeboxTV for Kodi PVR', '0.1.0', socket.gethostname(), appToken, trackId )     
         
-        appToken, trackId = oFreebox.connect(settings.getSetting("app_token"), settings.getSetting("track_id"))
+        appToken, trackId = oFreebox.connect(appToken, trackId)
         settings.setSetting("app_token",appToken)
         settings.setSetting("track_id",str(trackId))
         
-        oFreebox.createFiles(settings.getSetting("quality".lower()), xbmc.translatePath('special://home/pvr.freeboxtv/') )
+        oFreebox.createConfFiles(settings.getSetting("quality".lower()), xbmc.translatePath('special://home/pvr.freeboxtv/') )
         
         #record a cron to create xmltv file each hour( ? depend of freebox server api :/ )
         #job = CronJob()

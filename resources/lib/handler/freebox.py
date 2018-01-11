@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from resources.lib.handler.exceptions import FreeboxHandlerError
 from distutils.version import LooseVersion
-import xbmc, requests, json
+import xbmc, os, requests, json, hmac, hashlib
 
 class Freebox:
 
@@ -20,9 +20,7 @@ class Freebox:
         self.appToken = appToken
         self.challenge = ''
         self.session = ''
-        
-        self._checkBouquetId()
-   
+  
     
     # method for getting jsonData from API
     def _requestJsonData(self, url):
@@ -31,18 +29,22 @@ class Freebox:
             jData = json.loads(apiResponse.content)
             if jData['success'] == True:
                 return jData['result']
-        raise FreeboxHandlerError('API Not answered as intended - HTTP Status:'+apiResponse.status_code)
+            raise FreeboxHandlerError('API '+url+' Not answered as intended - HTTP Status:'+str(apiResponse.status_code)+'-'+str(jData['msg'].encode('utf-8')))
+        raise FreeboxHandlerError('API '+url+' Not answered as intended - HTTP Status:'+str(apiResponse.status_code))
 
 
     # check 'Freebox TV' bouquet id and memorize it
     def _checkBouquetId(self):
-        jData = self.requestJsonData('tv/bouquets/')
-        for bouquet in jData['result']:
-            if bouquet['name'] == self.bouquetName:
-                self.bouquetId = bouquet['id']
-        # if no ID returned, it must because they changed the name, so please report issue to update code
-        if not self.bouquetId:
-            raise FreeboxHandlerError('Bouquet Name seems to have changed report the issue this need to update code')
+        try:
+            jData = self._requestJsonData('/tv/bouquets/')
+            for bouquet in jData:
+                if bouquet['name'] == self.bouquetName:
+                    self.bouquetId = bouquet['id']
+            # if no ID returned, it must because they changed the name, so please report issue to update code
+            if not self.bouquetId:
+                raise FreeboxHandlerError('Bouquet Name seems to have changed report the issue this need to update code')
+        except Exception as e:
+            raise FreeboxHandlerError('jData:'+str(jData)+' bouquet:'+str(bouquet))
 
 
     # method usefull for fallback to immediatly lower quality available if the choosed one in config doesn't exist in stream channel list
@@ -110,19 +112,22 @@ class Freebox:
 
     # get login session, needed for each request if we don't want to be blacklisted
     def _getSession(self):
-        hashed = hmac.new(self.appToken, self.challenge, sha1)
-        payload = {'app_id': '%s','password': '%s'} % (self.appId, hashed)
-        apiResponse = requests.post(self.apiUrl + '/login/session/', verify=self.certPath)
+        if not (self.appToken and self.challenge):
+            raise FreeboxHandlerError('missing value appToken:'+self.appToken+" challenge:"+self.challenge)
+        hashed = hmac.new(self.appToken, self.challenge, hashlib.sha1)
+        payload = { 'app_id': self.appId, 'password': hashed.hexdigest() }
+        data = json.dumps(payload)
+        apiResponse = requests.post(self.apiUrl + '/login/session/', data, verify=self.certPath)
         jData = json.loads(apiResponse.content)
         if jData['success'] == True:
             self.session = jData['result']['session_token']
             return True
-        raise FreeboxHandlerError('[PLUGIN] freeboxTV: Get Session - ' + str(jData['error_code']))
+        raise FreeboxHandlerError('Get Session - ' + str(jData['msg'].encode('utf-8') + "appToken:"+self.appToken+" challenge:"+self.challenge.encode('utf-8')))
         return False
 
 
     # unifying channels info with streams info and filter/sort it to return a final list for m3ufile write
-    def _filterAndSortChannels(channelsList, streamsList):
+    def _filterAndSortChannels(self,channelsList, streamsList):
         lChannels = []
         for channelId in channelsList:
             # we filter channel and don't process unavailable channels
@@ -164,14 +169,16 @@ class Freebox:
         return finalChannelsList
     
     # create m3u file
-    def _createM3uFile():
+    def _createM3uFile(self,channelsList,userDataPath):
         try:
             import io
             
             if not os.path.exists(userDataPath):
                 os.makedirs(userDataPath)
     
-            sortedChannels = sorted(channelsList, key=lambda channelsList: channelsList['number'])
+            sortedChannels = sorted(channelsList.items(), key=lambda channelsList: channelsList['number'])
+            if not sortedChannels:
+                raise FreeboxHandlerError('channel list is empty channelsList:')
                 
             with io.open(userDataPath+'freebox.m3u', 'w', encoding='utf-8') as the_file:
                 m3uhead = u'#EXTM3U\r\n'
@@ -187,7 +194,7 @@ class Freebox:
                         dChannel['stream']
                     )
                     the_file.write(m3uline)
-                return true
+                return True
         except Exception, e:
             raise FreeboxHandlerError(str(e))
 
@@ -208,23 +215,24 @@ class Freebox:
                 # if we are paired then memorize the session 
                 if self._checkPairing(trackId):
                     self._getSession()
+        return appToken, trackId
 
     # we create the xmltv file
     # this method is not private because this one will be called externally by cron 
-    def createXmlTvFile():
-        raise FreeboxHandlerException('Creating XMLTV file is not implemented yet')
+    def createXmlTvFile(self,channelList,userDataPath):
+        raise FreeboxHandlerError('Creating XMLTV file is not implemented yet')
 
     # all steps needed to create xmltv and m3u file
     def createConfFiles(self, quality, userDataPath):
             self.quality = quality
             self._checkBouquetId()
-    
-            channelsList    = self._requestJsonData('/tv/channel')
-            streamsList     = self._requestJsonData('/tv/bouquets/'+self.bouquetId+'/channels')
+
+            channelsList    = self._requestJsonData('/tv/channels')
+            streamsList     = self._requestJsonData('/tv/bouquets/'+str(self.bouquetId)+'/channels')
             
             finalList = self._filterAndSortChannels(channelsList,streamsList)
             
             self._createM3uFile(finalList, userDataPath)
-            self.createXMLTvFile(finalList, userDataPath)
+            self.createXmlTvFile(finalList, userDataPath)
             return True
             
