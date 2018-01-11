@@ -139,7 +139,7 @@ class Freebox:
                 try:
                     streamChannel = (item for item in streamsList if item["uuid"] == channelsList[channelId]['uuid']).next()
                 except StopIteration as e:
-                    xbmc.log('no stream found for '+str(channelsList[channelId]['uuid'])+' - '+channelsList[channelId]['name'], xbmc.LOGWARNING)
+                    xbmc.log('[FREEBOXTV] no stream found for '+str(channelsList[channelId]['uuid'])+' - '+channelsList[channelId]['name'], xbmc.LOGWARNING)
                 # if the channel is not a pub_service, the rtsp is always missing
                 if streamChannel['pub_service'] == True:
                     channelNumber = streamChannel['number']
@@ -172,7 +172,7 @@ class Freebox:
                     raise FreeboxHandlerError("List is empty")
         # we sort the channels list by their official number in the bouquet
         finalChannelsList = sorted(lChannels, key=lambda lChannels: lChannels['number'])
-        xbmc.log( str(len(finalChannelsList))+' channels found', xbmc.LOGWARNING)
+        xbmc.log("[FREEBOXTV]" + str(len(finalChannelsList))+' channels available on 627', xbmc.LOGWARNING)
         return finalChannelsList
     
     # create m3u file
