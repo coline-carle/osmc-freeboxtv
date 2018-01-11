@@ -135,37 +135,44 @@ class Freebox:
                 # we get the stream uri for the channel in choosed quality and the channel number in same time
                 channelNumber = ''
                 rtspUrl = ''
-                for streamChannel in streamsList:
-                    # if the channel is not a pub_service, the rtsp is always missing
-                    if ( streamChannel == channelsList[channelId]['uuid']) and (streamChannel['pub_service'] == True):
-                        channelNumber = streamChannel['number']
-                        # we prepare a dict of stream uri & quality available for the channel
-                        lStream = {}
-                        for stream in streamChannel['streams']:
-                            lStream[stream['quality']] = stream['rtsp']
+
+                try:
+                    streamChannel = (item for item in streamsList if item["uuid"] == channelsList[channelId]['uuid']).next()
+                except StopIteration as e:
+                    xbmc.log('no stream found for '+str(channelsList[channelId]['uuid'])+' - '+channelsList[channelId]['name'], xbmc.LOGWARNING)
+                # if the channel is not a pub_service, the rtsp is always missing
+                if streamChannel['pub_service'] == True:
+                    channelNumber = streamChannel['number']
+                   
+                    # we prepare a dict of stream uri & quality available for the channel
+                    lStream = {}
+                    for stream in streamChannel['streams']:
+                        lStream[stream['quality']] = stream['rtsp']
                         #we search for the nearest of choosed one quality available
-                        tmpQuality = self.quality
-                        while tmpQuality not in lStream:
-                            tmpQuality = self._getLowerQuality(tmpQuality)
-                            if not tmpQuality:
-                                raise FreeboxHandlerError("Quality unexpected with uuid:"+uuid)
-                        rtspUrl = lStream[tmpQuality]
+                    tmpQuality = self.quality
+                    while tmpQuality not in lStream:
+                        tmpQuality = self._getLowerQuality(tmpQuality)
+                        if not tmpQuality:
+                            raise FreeboxHandlerError("Quality unexpected with uuid:"+uuid)
+                    rtspUrl = lStream[tmpQuality]
                 # we process the channel only if a stream uri is returned
                 if rtspUrl:
                     dChannel = {
                         'channelId':channelsList[channelId]['uuid'], 
                         'number':channelNumber,
-                        'name':channelList[channelId]['name'],
-                        'shortname':channelList[channelId]['shortname'], 
+                        'name':channelsList[channelId]['name'],
+                        'shortname':channelsList[channelId]['short_name'], 
                         'logo':channelsList[channelId]['logo_url'], 
                         'group':self.bouquetName,
                         'stream':rtspUrl,
-                        'quality':quality
+                        #'quality':quality
                     }
                     lChannels.append(dChannel)
-                    
+                if len(lChannels)<=0:
+                    raise FreeboxHandlerError("List is empty")
         # we sort the channels list by their official number in the bouquet
         finalChannelsList = sorted(lChannels, key=lambda lChannels: lChannels['number'])
+        xbmc.log( str(len(finalChannelsList))+' channels found', xbmc.LOGWARNING)
         return finalChannelsList
     
     # create m3u file
@@ -176,14 +183,13 @@ class Freebox:
             if not os.path.exists(userDataPath):
                 os.makedirs(userDataPath)
     
-            sortedChannels = sorted(channelsList.items(), key=lambda channelsList: channelsList['number'])
-            if not sortedChannels:
+            if not channelsList:
                 raise FreeboxHandlerError('channel list is empty channelsList:')
                 
             with io.open(userDataPath+'freebox.m3u', 'w', encoding='utf-8') as the_file:
                 m3uhead = u'#EXTM3U\r\n'
                 the_file.write(m3uhead)                
-                for dChannel in sortedChannels:
+                for dChannel in channelsList:
                     m3uFormat = "#EXTINF:-1 tvg-id=\"%s\" tvg-name=\"%s\" tvg-logo=\"%s\" group-title=\"%s\",%s\r\n%s\r\n"
                     m3uline = m3uFormat % (
                         dChannel['channelId'], 
