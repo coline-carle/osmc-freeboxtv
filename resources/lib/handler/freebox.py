@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from resources.lib.handler.exceptions import FreeboxHandlerError
 from distutils.version import LooseVersion
-import xbmc, os, requests, json, hmac, hashlib
+import xbmc, os, requests, json, hmac, hashlib, time, io
 
 class Freebox:
 
@@ -162,7 +162,7 @@ class Freebox:
                         'number':channelNumber,
                         'name':channelsList[channelId]['name'],
                         'shortname':channelsList[channelId]['short_name'], 
-                        'logo':channelsList[channelId]['logo_url'], 
+                        'logo':self.apiUrl.split('/api')[0]+channelsList[channelId]['logo_url'], 
                         'group':self.bouquetName,
                         'stream':rtspUrl,
                         #'quality':quality
@@ -178,8 +178,6 @@ class Freebox:
     # create m3u file
     def _createM3uFile(self,channelsList,userDataPath):
         try:
-            import io
-            
             if not os.path.exists(userDataPath):
                 os.makedirs(userDataPath)
     
@@ -190,8 +188,9 @@ class Freebox:
                 m3uhead = u'#EXTM3U\r\n'
                 the_file.write(m3uhead)                
                 for dChannel in channelsList:
-                    m3uFormat = "#EXTINF:-1 tvg-id=\"%s\" tvg-name=\"%s\" tvg-logo=\"%s\" group-title=\"%s\",%s\r\n%s\r\n"
+                    m3uFormat = "#EXTINF:-1 channel-id=\"%d\"tvg-id=\"%s\" tvg-name=\"%s\" tvg-logo=\"%s\" group-title=\"%s\",%s\r\n%s\r\n"
                     m3uline = m3uFormat % (
+                        dChannel['number'],
                         dChannel['channelId'], 
                         dChannel['shortname'], 
                         dChannel['logo'], 
@@ -225,8 +224,65 @@ class Freebox:
 
     # we create the xmltv file
     # this method is not private because this one will be called externally by cron 
-    def createXmlTvFile(self,channelList,userDataPath):
-        raise FreeboxHandlerError('Creating XMLTV file is not implemented yet')
+    def createXmlTvFile(self,channelsList,userDataPath):
+        if not channelsList:
+            raise FreeboxHandlerError('channel list is empty channelsList:')
+        
+        os.environ['TZ'] = 'Europe/Paris'
+        epoch = int(time.mktime(time.localtime()))
+        programsList = self._requestJsonData('/tv/epg/by_time/'+str(epoch))
+
+        xmltvLine = (   "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n"
+                        "<!DOCTYPE tv SYSTEM \"xmltv.dtd\">\r\n\r\n"
+                        "<tv source-info-url=\"http://www.schedulesdirect.org/\" source-info-name=\"Schedules Direct\""
+                        " generator-info-name=\"XMLTV/$Id: tv_grab_na_dd.in,v 1.70 2008/03/03 15:21:41 rmeden Exp"
+                        " $\" generator-info-url=\"http://www.xmltv.org/\">\r\n"
+                    )
+
+        xbmc.log(xmltvLine,xbmc.LOGWARNING)
+
+        for channel in channelsList:
+            xmltvLine += (
+                "   <channel id=\"%s\">\r\n"
+                "       <display-name>%s</display-name>\r\n"
+                "       <icon src=\"%s\" />\r\n"
+                "   </channel>\r\n"
+                ) % (channel['channelId'], channel['name'], channel['logo'])
+            
+        for channelId,lChannel in programsList.iteritems():
+            for programId,lProgram in lChannel.iteritems():
+                programStartTS = int(lProgram['date'])
+                programEndTS = int(programStartTS) + int(lProgram['duration'])
+
+                xmltvLine += (
+                        "   <programme start=\"%s\" stop=\"%s\" channel=\"%s\">\r\n"
+                        "       <date>%d</date>\r\n" ) % (
+                        time.strftime('%Y%m%d%H%M%S '+str(time.timezone), time.localtime( programStartTS ) ),
+                        time.strftime('%Y%m%d%H%M%S '+str(time.timezone), time.localtime( programEndTS ) ),
+                        channelId,
+                        int(lProgram['date']),
+                    )
+                if 'title' in lProgram:
+                    xmltvLine += "      <title lang=\"fr\">%s</title>\r\n" % lProgram['title']
+
+                if 'category_name' in lProgram:
+                    xmltvLine += "      <category lang=\"fr\">%s</category>\r\n" % lProgram['category_name']
+
+                if 'sub_title' in lProgram:
+                    xmltvLine += "      <desc lang=\"fr\">%s</desc>\r\n" % lProgram['sub_title']
+
+                if 'category' in lProgram and lProgram['category']==3 and 'episode_number' in lProgram:
+                    if not 'season_number' in lProgram:
+                        xmltvLine += "      <episode-num system=\"xmltv_ns\">%d</episode-num>\r\n" % lProgram['episode_number']
+                    else:
+                        xmltvLine += "      <episode-num system=\"xmltv_ns\">%d.%d</episode-num>\r\n"  % (lProgram['season_number'], lProgram['episode_number']) 
+
+                xmltvLine += '   </programme>\r\n'
+            
+        xmltvLine += '</tv>'
+        
+        with io.open(userDataPath+'freebox.xml', 'w', encoding='utf-8') as the_file:
+            the_file.write(xmltvLine)
 
     # all steps needed to create xmltv and m3u file
     def createConfFiles(self, quality, userDataPath):

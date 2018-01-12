@@ -20,7 +20,7 @@ def main():
         settings.setSetting("app_token",appToken)
         settings.setSetting("track_id",str(trackId))
         
-        oFreebox.createConfFiles(settings.getSetting("quality".lower()), xbmc.translatePath('special://home/pvr.freeboxtv/') )
+        oFreebox.createConfFiles(settings.getSetting("quality".lower()), xbmc.translatePath('special://home/../pvr.freeboxtv/') )
         
         #record a cron to create xmltv file each hour( ? depend of freebox server api :/ )
         #job = CronJob()
