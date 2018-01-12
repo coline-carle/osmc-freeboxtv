@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="script.module.freeboxtv" name="FreeboxTV" version="0.1.0" provider-name="Daniel Buteau">
     <requires>
-        <import addon="xbmc.python" version="2.1.0"/>
+        <import addon="xbmc.python" version="2.24.0"/>
         <import addon="pvr.iptvsimple" version="3.4.0"/>
-<!--    <import addon="service.cronxbmc" version="Current.Version.Number" /> -->
+        <import addon="service.cronxbmc" version="0.0.9" />
     </requires>
     <extension point="xbmc.python.script" library="addon.py">
         <provides>executable</provides>

@@ -172,7 +172,9 @@ class Freebox:
                     raise FreeboxHandlerError("List is empty")
         # we sort the channels list by their official number in the bouquet
         finalChannelsList = sorted(lChannels, key=lambda lChannels: lChannels['number'])
-        xbmc.log("[FREEBOXTV]" + str(len(finalChannelsList))+' channels available on 627', xbmc.LOGWARNING)
+
+        # We give some feedback to the user
+        xbmc.executebuiltin('Notification(FreeboxTV, filtered %d channels on total of %d, %d )' % ( len(finalChannelsList), len(channelsList), 5000))
         return finalChannelsList
     
     # create m3u file
@@ -188,11 +190,11 @@ class Freebox:
                 m3uhead = u'#EXTM3U\r\n'
                 the_file.write(m3uhead)                
                 for dChannel in channelsList:
-                    m3uFormat = "#EXTINF:-1 channel-id=\"%d\"tvg-id=\"%s\" tvg-name=\"%s\" tvg-logo=\"%s\" group-title=\"%s\",%s\r\n%s\r\n"
+                    m3uFormat = "#EXTINF:-1 channel-id=\"%d\" tvg-id=\"%s\" tvg-name=\"%s\" tvg-logo=\"%s\" group-title=\"%s\",%s\r\n%s\r\n"
                     m3uline = m3uFormat % (
                         dChannel['number'],
                         dChannel['channelId'], 
-                        dChannel['shortname'], 
+                        dChannel['shortname'].replace(" ", "_"), 
                         dChannel['logo'], 
                         dChannel['group'], 
                         dChannel['name'], 
@@ -229,8 +231,13 @@ class Freebox:
             raise FreeboxHandlerError('channel list is empty channelsList:')
         
         os.environ['TZ'] = 'Europe/Paris'
+
         epoch = int(time.mktime(time.localtime()))
+        xbmc.log('epoch:'+str(epoch),xbmc.LOGWARNING)
+
         programsList = self._requestJsonData('/tv/epg/by_time/'+str(epoch))
+ 
+        xbmc.log('[FREEBOXTV] epoch:'+str(epoch),xbmc.LOGDEBUG)
 
         xmltvLine = (   "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n"
                         "<!DOCTYPE tv SYSTEM \"xmltv.dtd\">\r\n\r\n"
@@ -239,8 +246,6 @@ class Freebox:
                         " $\" generator-info-url=\"http://www.xmltv.org/\">\r\n"
                     )
 
-        xbmc.log(xmltvLine,xbmc.LOGWARNING)
-
         for channel in channelsList:
             xmltvLine += (
                 "   <channel id=\"%s\">\r\n"
@@ -248,53 +253,70 @@ class Freebox:
                 "       <icon src=\"%s\" />\r\n"
                 "   </channel>\r\n"
                 ) % (channel['channelId'], channel['name'], channel['logo'])
-            
+
+        
         for channelId,lChannel in programsList.iteritems():
+
             for programId,lProgram in lChannel.iteritems():
+
                 programStartTS = int(lProgram['date'])
                 programEndTS = int(programStartTS) + int(lProgram['duration'])
 
-                xmltvLine += (
+                # We want to write program only for channel we display not the unavailable channel
+                if any(d['channelId'] == channelId for d in channelsList):
+                    xmltvLine += (
                         "   <programme start=\"%s\" stop=\"%s\" channel=\"%s\">\r\n"
-                        "       <date>%d</date>\r\n" ) % (
+                        ) % (
                         time.strftime('%Y%m%d%H%M%S '+str(time.timezone), time.localtime( programStartTS ) ),
                         time.strftime('%Y%m%d%H%M%S '+str(time.timezone), time.localtime( programEndTS ) ),
-                        channelId,
-                        int(lProgram['date']),
-                    )
-                if 'title' in lProgram:
-                    xmltvLine += "      <title lang=\"fr\">%s</title>\r\n" % lProgram['title']
+                        channelId
+                        )
+                    if 'title' in lProgram:
+                        xmltvLine += "      <title lang=\"fr\">%s</title>\r\n" % lProgram['title']
 
-                if 'category_name' in lProgram:
-                    xmltvLine += "      <category lang=\"fr\">%s</category>\r\n" % lProgram['category_name']
+                    if 'category_name' in lProgram:
+                        xmltvLine += "      <category lang=\"fr\">%s</category>\r\n" % lProgram['category_name']
 
-                if 'sub_title' in lProgram:
-                    xmltvLine += "      <desc lang=\"fr\">%s</desc>\r\n" % lProgram['sub_title']
+                    if 'sub_title' in lProgram:
+                        xmltvLine += "      <desc lang=\"fr\">%s</desc>\r\n" % lProgram['sub_title']
 
-                if 'category' in lProgram and lProgram['category']==3 and 'episode_number' in lProgram:
-                    if not 'season_number' in lProgram:
-                        xmltvLine += "      <episode-num system=\"xmltv_ns\">%d</episode-num>\r\n" % lProgram['episode_number']
-                    else:
-                        xmltvLine += "      <episode-num system=\"xmltv_ns\">%d.%d</episode-num>\r\n"  % (lProgram['season_number'], lProgram['episode_number']) 
+                    if 'category' in lProgram and lProgram['category']==3 and 'episode_number' in lProgram:
+                        if not 'season_number' in lProgram:
+                            xmltvLine += "      <episode-num system=\"xmltv_ns\">%d</episode-num>\r\n" % lProgram['episode_number']
+                        else:
+                            xmltvLine += "      <episode-num system=\"xmltv_ns\">%d.%d</episode-num>\r\n"  % (lProgram['season_number'], lProgram['episode_number']) 
 
-                xmltvLine += '   </programme>\r\n'
-            
+                    xmltvLine += '   </programme>\r\n'
+                
         xmltvLine += '</tv>'
         
         with io.open(userDataPath+'freebox.xml', 'w', encoding='utf-8') as the_file:
             the_file.write(xmltvLine)
 
-    # all steps needed to create xmltv and m3u file
-    def createConfFiles(self, quality, userDataPath):
-            self.quality = quality
-            self._checkBouquetId()
+        xbmc.executebuiltin('Notification(FreeboxTV, M3U & XMLTV Wrote sucessfully, all is ready!,5000 )')
+        return True
 
-            channelsList    = self._requestJsonData('/tv/channels')
-            streamsList     = self._requestJsonData('/tv/bouquets/'+str(self.bouquetId)+'/channels')
+    # all steps needed to create xmltv and m3u file launched at addon activation
+    def createConfFiles(self, quality, userDataPath):
+        self.quality = quality
+        self._checkBouquetId()
+
+        channelsList    = self._requestJsonData('/tv/channels')
+        streamsList     = self._requestJsonData('/tv/bouquets/'+str(self.bouquetId)+'/channels')
             
-            finalList = self._filterAndSortChannels(channelsList,streamsList)
+        finalList = self._filterAndSortChannels(channelsList,streamsList)
             
-            self._createM3uFile(finalList, userDataPath)
-            self.createXmlTvFile(finalList, userDataPath)
-            return True
-            
+        self._createM3uFile(finalList, userDataPath)
+        self.createXmlTvFile(finalList, userDataPath)
+        return True
+
+    #all steps needed to create the xmltv only, launched by scheduler
+    def updateXmlTvFile(self, userDataPath):
+        channelsList    = self._requestJsonData('/tv/channels')
+        streamsList     = self._requestJsonData('/tv/bouquets/'+str(self.bouquetId)+'/channels')
+
+        finalList = self._filterAndSortChannels(channelsList,streamsList)
+
+        self.createXmlTvFile(finalList, userDataPath)
+        return True
+
