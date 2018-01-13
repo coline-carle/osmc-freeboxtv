@@ -268,8 +268,9 @@ class Freebox:
                         "   <programme start=\"%s\" stop=\"%s\" channel=\"%s\">\r\n"
                         ) % (
                         #Freebox give local timestamp, need to convert it to gmt timestamp for xmltv
-                        time.strftime('%Y%m%d%H%M%S '+str(time.timezone), time.gmtime( programStartTS ) ),
-                        time.strftime('%Y%m%d%H%M%S '+str(time.timezone), time.gmtime( programEndTS ) ),
+                        # and forget timezone offset it mess up all
+                        time.strftime('%Y%m%d%H%M%S', time.gmtime( programStartTS ) ),
+                        time.strftime('%Y%m%d%H%M%S', time.gmtime( programEndTS ) ),
                         channelId.replace('-','.')
                         )
                     if 'title' in lProgram:
