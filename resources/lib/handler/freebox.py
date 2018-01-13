@@ -158,7 +158,7 @@ class Freebox:
                 # we process the channel only if a stream uri is returned
                 if rtspUrl:
                     dChannel = {
-                        'channelId':channelsList[channelId]['uuid'], 
+                        'channelId':channelsList[channelId]['uuid'].replace('-','.'),
                         'number':channelNumber,
                         'name':channelsList[channelId]['name'],
                         'shortname':channelsList[channelId]['short_name'], 
@@ -263,13 +263,13 @@ class Freebox:
                 programEndTS = int(programStartTS) + int(lProgram['duration'])
 
                 # We want to write program only for channel we display not the unavailable channel
-                if any(d['channelId'] == channelId for d in channelsList):
+                if any(d['channelId'] == channelId.replace('-','.') for d in channelsList):
                     xmltvLine += (
                         "   <programme start=\"%s\" stop=\"%s\" channel=\"%s\">\r\n"
                         ) % (
                         time.strftime('%Y%m%d%H%M%S '+str(time.timezone), time.localtime( programStartTS ) ),
                         time.strftime('%Y%m%d%H%M%S '+str(time.timezone), time.localtime( programEndTS ) ),
-                        channelId
+                        channelId.replace('-','.')
                         )
                     if 'title' in lProgram:
                         xmltvLine += "      <title lang=\"fr\">%s</title>\r\n" % lProgram['title']
