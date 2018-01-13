@@ -233,7 +233,7 @@ class Freebox:
         os.environ['TZ'] = 'Europe/Paris'
 
         epoch = int(time.mktime(time.localtime()))
-        xbmc.log('epoch:'+str(epoch),xbmc.LOGWARNING)
+        xbmc.log('epoch:'+str(epoch)+' meaning:'+time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(epoch)),xbmc.LOGWARNING)
 
         programsList = self._requestJsonData('/tv/epg/by_time/'+str(epoch))
  
@@ -267,20 +267,21 @@ class Freebox:
                     xmltvLine += (
                         "   <programme start=\"%s\" stop=\"%s\" channel=\"%s\">\r\n"
                         ) % (
-                        time.strftime('%Y%m%d%H%M%S '+str(time.timezone), time.localtime( programStartTS ) ),
-                        time.strftime('%Y%m%d%H%M%S '+str(time.timezone), time.localtime( programEndTS ) ),
+                        #Freebox give local timestamp, need to convert it to gmt timestamp for xmltv
+                        time.strftime('%Y%m%d%H%M%S '+str(time.timezone), time.gmtime( programStartTS ) ),
+                        time.strftime('%Y%m%d%H%M%S '+str(time.timezone), time.gmtime( programEndTS ) ),
                         channelId.replace('-','.')
                         )
                     if 'title' in lProgram:
-                        xmltvLine += "      <title lang=\"fr\">%s</title>\r\n" % lProgram['title']
+                        xmltvLine += "      <title>%s</title>\r\n" % lProgram['title']
 
                     if 'category_name' in lProgram:
-                        xmltvLine += "      <category lang=\"fr\">%s</category>\r\n" % lProgram['category_name']
+                        xmltvLine += "      <category>%s</category>\r\n" % lProgram['category_name']
 
                     if 'sub_title' in lProgram:
-                        xmltvLine += "      <desc lang=\"fr\">%s</desc>\r\n" % lProgram['sub_title']
+                        xmltvLine += "      <sub-title>%s</sub-title>\r\n" % lProgram['sub_title']
 
-                    if 'category' in lProgram and lProgram['category']==3 and 'episode_number' in lProgram:
+                    if 'episode_number' in lProgram:
                         if not 'season_number' in lProgram:
                             xmltvLine += "      <episode-num system=\"xmltv_ns\">%d</episode-num>\r\n" % lProgram['episode_number']
                         else:
