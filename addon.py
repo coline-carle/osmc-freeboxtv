@@ -26,6 +26,10 @@ def update():
         xbmc.log('[FREEBOX]'+str(e),xbmc.LOGERROR)
 
 def main():
+    if len(sys.argv) >0:
+        if sys.argv == 'update':
+            update()
+            
     settings    = xbmcaddon.Addon(id='script.module.freeboxtv')
     appToken    = settings.getSetting("app_token")
     trackId     = settings.getSetting("track_id")
@@ -41,7 +45,7 @@ def main():
 
         job = CronJob()
         job.name = "refresh_XMLTV_File"
-        job.command = "runScript(script.module.freeboxtv/update)"
+        job.command = "runScript(script.module.freeboxtv, update)"
         job.expression = "0 */1 * * *"
         job.show_notification = "true"
         job.addon = "script.module.freeboxtv"

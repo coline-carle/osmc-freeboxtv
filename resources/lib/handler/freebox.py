@@ -227,18 +227,11 @@ class Freebox:
     # we create the xmltv file
     # this method is not private because this one will be called externally by cron 
     def createXmlTvFile(self,channelsList,userDataPath):
+        from jsonmerge import merge
+        
         if not channelsList:
             raise FreeboxHandlerError('channel list is empty channelsList:')
         
-        os.environ['TZ'] = 'Europe/Paris'
-
-        epoch = int(time.mktime(time.localtime()))
-        xbmc.log('epoch:'+str(epoch)+' meaning:'+time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(epoch)),xbmc.LOGWARNING)
-
-        programsList = self._requestJsonData('/tv/epg/by_time/'+str(epoch))
- 
-        xbmc.log('[FREEBOXTV] epoch:'+str(epoch),xbmc.LOGDEBUG)
-
         xmltvLine = (   "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n"
                         "<!DOCTYPE tv SYSTEM \"xmltv.dtd\">\r\n\r\n"
                         "<tv source-info-url=\"http://www.schedulesdirect.org/\" source-info-name=\"Schedules Direct\""
@@ -246,18 +239,40 @@ class Freebox:
                         " $\" generator-info-url=\"http://www.xmltv.org/\">\r\n"
                     )
 
+        channelNumber = 0
         for channel in channelsList:
+            channelNumber = channelNumber+1
             xmltvLine += (
                 "   <channel id=\"%s\">\r\n"
                 "       <display-name>%s</display-name>\r\n"
                 "       <icon src=\"%s\" />\r\n"
                 "   </channel>\r\n"
                 ) % (channel['channelId'], channel['name'], channel['logo'])
-
         
+        addTime = 0
+        programsList = {}
+        os.environ['TZ'] = 'Europe/Paris'
+        
+        for i in range(0,24): # on interroge toute la journée
+            addTime = 0
+            nowHour = int(time.strftime("%H"))
+            deltaHour = i - nowHour
+            if deltaHour >= 0: # enfin sauf les heures passés, osef
+                if i > 0:
+                    addTime = deltaHour*3600
+    
+                epoch = int(time.mktime(time.localtime())) + addTime
+                xbmc.log('epoch:'+str(epoch)+' meaning:'+time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(epoch)),xbmc.LOGWARNING)
+                
+                programsList = merge( programsList, self._requestJsonData('/tv/epg/by_time/'+str(epoch)) )
+        
+        programmNumber = 0
+        channelProgramNumber = 0
         for channelId,lChannel in programsList.iteritems():
-
+            channelProgramNumber = channelProgramNumber +1
+            
             for programId,lProgram in lChannel.iteritems():
+                programmNumber = programmNumber+1
 
                 programStartTS = int(lProgram['date'])
                 programEndTS = int(programStartTS) + int(lProgram['duration'])
@@ -269,8 +284,8 @@ class Freebox:
                         ) % (
                         #Freebox give local timestamp, need to convert it to gmt timestamp for xmltv
                         # and forget timezone offset it mess up all
-                        time.strftime('%Y%m%d%H%M%S', time.gmtime( programStartTS ) ),
-                        time.strftime('%Y%m%d%H%M%S', time.gmtime( programEndTS ) ),
+                        time.strftime('%Y%m%d%H%M%S -0100', time.localtime( programStartTS - 14400) ),
+                        time.strftime('%Y%m%d%H%M%S -0100', time.localtime( programEndTS - 14400 ) ),
                         channelId.replace('-','.')
                         )
                     if 'title' in lProgram:
@@ -296,6 +311,7 @@ class Freebox:
             the_file.write(xmltvLine)
 
         xbmc.executebuiltin('Notification(FreeboxTV, M3U & XMLTV Wrote sucessfully, all is ready!,5000 )')
+        xbmc.log('[FREEBOXTV]XMLTV wrote- channels:'+str(channelNumber)+' channels For Program:'+str(channelProgramNumber)+' program:'+str(programmNumber),xbmc.LOGWARNING)
         return True
 
     # all steps needed to create xmltv and m3u file launched at addon activation
@@ -314,6 +330,7 @@ class Freebox:
 
     #all steps needed to create the xmltv only, launched by scheduler
     def updateXmlTvFile(self, userDataPath):
+        self._checkBouquetId()
         channelsList    = self._requestJsonData('/tv/channels')
         streamsList     = self._requestJsonData('/tv/bouquets/'+str(self.bouquetId)+'/channels')
 
